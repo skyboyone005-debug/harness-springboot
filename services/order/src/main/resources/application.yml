@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: order-service
+server:
+  port: ${PORT:8081}
+user-svc:
+  url: ${USER_SVC_URL:http://localhost:8082}

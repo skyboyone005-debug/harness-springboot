@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: order-svc
+  version: 1.0.0
+  description: 订单服务。创建订单时同步调用 user-svc 校验用户存在。
+servers:
+  - url: http://localhost:8080/api/order
+    description: via gateway
+tags:
+  - name: orders
+paths:
+  /v1/orders:
+    post:
+      operationId: createOrder
+      summary: 创建订单
+      tags: [orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+            example: { userId: u_1, items: [{ sku: SKU-1, qty: 2, priceCents: 1999 }] }
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+              example:
+                id: o_1
+                userId: u_1
+                items: [{ sku: SKU-1, qty: 2, priceCents: 1999 }]
+                totalCents: 3998
+                status: pending
+                createdAt: '2026-01-01T00:00:00Z'
+        '400': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '502': { $ref: '#/components/responses/Error' }
+    get:
+      operationId: listOrders
+      summary: 按用户查询订单
+      tags: [orders]
+      parameters:
+        - { name: userId, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+              example:
+                items:
+                  - id: o_1
+                    userId: u_1
+                    items: [{ sku: SKU-1, qty: 2, priceCents: 1999 }]
+                    totalCents: 3998
+                    status: pending
+                    createdAt: '2026-01-01T00:00:00Z'
+        '400': { $ref: '#/components/responses/Error' }
+  /v1/orders/{id}:
+    get:
+      operationId: getOrder
+      summary: 查询订单
+      tags: [orders]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+              example:
+                id: o_1
+                userId: u_1
+                items: [{ sku: SKU-1, qty: 2, priceCents: 1999 }]
+                totalCents: 3998
+                status: pending
+                createdAt: '2026-01-01T00:00:00Z'
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: 统一错误体
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: user_not_found, message: user u_9 does not exist, requestId: req_123 }
+  schemas:
+    LineItem:
+      type: object
+      additionalProperties: false
+      required: [sku, qty, priceCents]
+      properties:
+        sku: { type: string, minLength: 1 }
+        qty: { type: integer, minimum: 1 }
+        priceCents: { type: integer, minimum: 0 }
+    CreateOrderRequest:
+      type: object
+      additionalProperties: false
+      required: [userId, items]
+      properties:
+        userId: { type: string }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/LineItem' }
+    Order:
+      type: object
+      required: [id, userId, items, totalCents, status, createdAt]
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/LineItem' }
+        totalCents: { type: integer }
+        status: { type: string, enum: [pending, paid, cancelled] }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, description: 机器可读错误码，前端据此分支 }
+        message: { type: string }
+        requestId: { type: string }

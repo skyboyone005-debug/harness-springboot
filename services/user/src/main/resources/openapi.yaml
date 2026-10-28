@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+  title: user-svc
+  version: 1.0.0
+  description: 用户服务。契约即真相（single source of truth），实现与前端 SDK 均由此派生。
+servers:
+  - url: http://localhost:8080/api/user
+    description: via gateway
+tags:
+  - name: users
+paths:
+  /v1/users:
+    post:
+      operationId: createUser
+      summary: 创建用户
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+            example: { name: Alice, email: alice@example.com }
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+              example: { id: u_1, name: Alice, email: alice@example.com, createdAt: '2026-01-01T00:00:00Z' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+    get:
+      operationId: listUsers
+      summary: 用户列表
+      tags: [users]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+              example:
+                items:
+                  - { id: u_1, name: Alice, email: alice@example.com, createdAt: '2026-01-01T00:00:00Z' }
+        '400': { $ref: '#/components/responses/Error' }
+  /v1/users/{id}:
+    get:
+      operationId: getUser
+      summary: 查询用户
+      tags: [users]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+              example: { id: u_1, name: Alice, email: alice@example.com, createdAt: '2026-01-01T00:00:00Z' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: 统一错误体
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: not_found, message: user not found, requestId: req_123 }
+  schemas:
+    CreateUserRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 64 }
+        email: { type: string, format: email }
+    User:
+      type: object
+      required: [id, name, email, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, description: 机器可读错误码，前端据此分支 }
+        message: { type: string }
+        requestId: { type: string }

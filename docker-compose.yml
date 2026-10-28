@@ -1,0 +1,14 @@
+services:
+  user:
+    build: { context: ., args: { SVC: user } }
+    environment: { PORT: "8080" }
+  order:
+    build: { context: ., args: { SVC: order } }
+    environment: { PORT: "8080", USER_SVC_URL: "http://user:8080" }
+  gateway:
+    build: { context: ., args: { SVC: gateway } }
+    environment:
+      PORT: "8080"
+      GATEWAY_UPSTREAMS_USER: "http://user:8080"
+      GATEWAY_UPSTREAMS_ORDER: "http://order:8080"
+    ports: ["8080:8080"]

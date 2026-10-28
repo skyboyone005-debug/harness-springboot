@@ -1,0 +1,32 @@
+package com.harness.__NAME__;
+
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.harness.contract.Contract;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class __CLASS__ContractTest {
+
+    @RegisterExtension
+    static Contract contract = Contract.forSpec("src/main/resources/openapi.yaml");
+
+    @Autowired
+    MockMvc mvc;
+
+    @Test
+    void items() {
+        var api = contract.on(mvc);
+        Map<?, ?> it = api.post("/v1/__NAME__/items", Map.of("title", "hello")).expect(201).as(Map.class);
+        api.post("/v1/__NAME__/items", Map.of("title", "")).expect(400);
+        api.get("/v1/__NAME__/items/" + it.get("id")).expect(200);
+        api.get("/v1/__NAME__/items/nope").expect(404);
+    }
+}

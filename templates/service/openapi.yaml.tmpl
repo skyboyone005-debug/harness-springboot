@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: __NAME__-svc
+  version: 0.1.0
+  description: TODO 描述 __NAME__ 服务的职责边界。
+servers:
+  - url: http://localhost:8080/api/__NAME__
+tags:
+  - name: __NAME__
+paths:
+  /v1/__NAME__/items:
+    post:
+      operationId: create__CLASS__Item
+      summary: 创建 item（示例，替换为真实资源）
+      tags: [__NAME__]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateItemRequest' }
+            example: { title: hello }
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Item' }
+              example: { id: i_1, title: hello }
+        '400': { $ref: '#/components/responses/Error' }
+  /v1/__NAME__/items/{id}:
+    get:
+      operationId: get__CLASS__Item
+      summary: 查询 item
+      tags: [__NAME__]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Item' }
+              example: { id: i_1, title: hello }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: 统一错误体
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: not_found, message: item not found, requestId: req_123 }
+  schemas:
+    CreateItemRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+    Item:
+      type: object
+      required: [id, title]
+      properties:
+        id: { type: string }
+        title: { type: string }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }

@@ -1,0 +1,22 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17, cache: maven }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: full verify (speclint, contract-diff, mvn verify)
+        run: scripts/harness/verify.sh --all
+      - name: breaking-change gate vs base branch
+        if: github.event_name == 'pull_request'
+        run: BASE=origin/${{ github.base_ref }} scripts/harness/contract-diff.sh | tee contract-diff.txt
+      - name: SDK must be regenerated when contracts change
+        run: scripts/dev/sdk.sh && git diff --exit-code web-sdk/src/gen || (echo "run 'make sdk' and commit" && exit 1)

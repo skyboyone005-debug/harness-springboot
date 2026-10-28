@@ -1,0 +1,8 @@
+target/
+*.iml
+.idea/
+.env
+.env.*
+node_modules/
+web-sdk/package-lock.json
+.claude/settings.local.json

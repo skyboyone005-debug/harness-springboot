@@ -1,0 +1,51 @@
+package com.harness.__NAME__;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.harness.common.ApiException;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+
+/** 示例资源：替换为真实领域模型（先改 openapi.yaml，再改这里）。 */
+@RestController
+@RequestMapping("/v1/__NAME__/items")
+class ItemController {
+
+    record Item(String id, String title) {
+    }
+
+    record CreateItemRequest(@NotBlank String title) {
+    }
+
+    private final AtomicLong seq = new AtomicLong();
+    private final Map<String, Item> items = new ConcurrentHashMap<>();
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    Item create(@Valid @RequestBody CreateItemRequest in) {
+        Item it = new Item("i_" + seq.incrementAndGet(), in.title());
+        items.put(it.id(), it);
+        return it;
+    }
+
+    @GetMapping("/{id}")
+    Item get(@PathVariable String id) {
+        Item it = items.get(id);
+        if (it == null) {
+            throw ApiException.notFound("item");
+        }
+        return it;
+    }
+}
