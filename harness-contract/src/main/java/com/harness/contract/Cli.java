@@ -1,5 +1,9 @@
 package com.harness.contract;
 
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
@@ -12,6 +16,9 @@ import java.util.Arrays;
 public final class Cli {
 
     public static void main(String[] args) throws Exception {
+        // 与终端 locale 无关地输出 UTF-8（中文提示不乱码）
+        System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8));
+        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8));
         String cmd = args.length == 0 ? "" : args[0];
         String[] rest = Arrays.copyOfRange(args, Math.min(1, args.length), args.length);
         switch (cmd) {

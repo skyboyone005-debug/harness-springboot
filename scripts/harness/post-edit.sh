@@ -14,7 +14,7 @@ case "$f" in
     mod="$(module_of "$f")"; [ -n "$mod" ] || exit 0
     if ! out="$($MVN -q -pl "$mod" -am compile 2>&1)"; then
       echo "compile failed after editing $f:" >&2
-      echo "$out" | grep -E '\[ERROR\].*\.java|ERROR.*symbol|ERROR.*incompatible' | head -15 >&2
+      echo "$out" | grep -E '\[ERROR\].*\.java|ERROR.*symbol|ERROR.*incompatible' | awk '!seen[$0]++' | head -15 >&2
       exit 2
     fi
     ;;
