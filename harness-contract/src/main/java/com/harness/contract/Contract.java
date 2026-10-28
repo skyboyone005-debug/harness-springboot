@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -40,13 +41,14 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
  * api.on(mvc).post("/v1/users", Map.of("name", "Alice")).expect(201).as(User.class);
  * }</pre>
  */
-public final class Contract implements AfterAllCallback {
+public final class Contract implements AfterAllCallback, TestWatcher {
 
     private static final ObjectMapper JSON = JsonMapper.builder().addModule(new JavaTimeModule()).build();
 
     private final OpenApi api;
     private final SchemaValidator validator;
     private final Set<String> exercised = ConcurrentHashMap.newKeySet();
+    private volatile boolean anyTestFailed;
 
     private Contract(OpenApi api) {
         this.api = api;
@@ -62,8 +64,13 @@ public final class Contract implements AfterAllCallback {
     }
 
     @Override
+    public void testFailed(ExtensionContext ctx, Throwable cause) {
+        anyTestFailed = true;
+    }
+
+    @Override
     public void afterAll(ExtensionContext ctx) {
-        if (ctx.getExecutionException().isPresent()) {
+        if (anyTestFailed || ctx.getExecutionException().isPresent()) {
             return; // 已有失败，别用覆盖率噪音盖住真正的错误
         }
         Set<String> missing = new TreeSet<>();
