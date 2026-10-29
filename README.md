@@ -139,6 +139,8 @@ AI 改表结构最危险：代码改错了回滚就行，**数据删了回不来
 存储层用 Spring 6 的 `JdbcClient`（不用 JPA）：SQL 显式可见，AI 改出来的 SQL 人一眼能审，也方便和迁移文件对照。
 默认数据源是内存 H2（MySQL 兼容模式），clone 下来零依赖就能跑测试和 `make dev`；`SPRING_PROFILES_ACTIVE=mysql` 或 `make up` 连真实 MySQL 8.4。
 
+为什么单元测试默认用 H2 而不是 MySQL：每次 Stop 都要跑测试，H2 内存库启动零成本、clone 即可跑，保证反馈快；但 H2 只是"兼容"MySQL，方言差异（如 DDL 写法、时间精度）要靠真实 MySQL 兜底。所以全部 44 个测试也在 **MySQL 8.0.46** 上跑过一遍（`-Dspring.profiles.active=mysql`），全部通过；落地时建议在 CI 里用 Testcontainers 起 MySQL 跑一次，作为 L3 的兜底。
+
 ### 1.9 质量度量：用数据证明 harness 有效（高级版）
 
 "这套东西真的有用吗？"是面试和落地时最常被问的问题。每个 hook 在拦截或放行时都往 `.harness/metrics.jsonl` 追加一行事件（会话 id 来自 Claude Code 的 hook 输入），`make report` 汇总成终端报告 + HTML 看板：
