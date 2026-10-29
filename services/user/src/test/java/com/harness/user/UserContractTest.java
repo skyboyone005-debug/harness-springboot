@@ -36,6 +36,7 @@ class UserContractTest {
 
         api.get("/v1/users/" + u.id()).expect(200);
         api.get("/v1/users/u_404").expect(404);
+        api.get("/v1/users/not-an-id").expect(404); // 非法 id 视为不存在，而不是 500
 
         Map<?, ?> page = api.get("/v1/users?limit=10").expect(200).as(Map.class);
         assertThat((List<?>) page.get("items")).anySatisfy(item -> assertThat(((Map<?, ?>) item).get("id")).isEqualTo(u.id()));
