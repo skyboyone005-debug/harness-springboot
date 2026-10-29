@@ -227,7 +227,9 @@ public final class Report {
         List<String[]> rows = new ArrayList<>();
         countBy("guard.block", e -> e.get("rule"), false).forEach((r, n) -> rows.add(new String[]{"L0 守卫", r, String.valueOf(n)}));
         countBy("edit.check", e -> e.get("kind"), true).forEach((r, n) -> rows.add(new String[]{"L1 编辑后", r, String.valueOf(n)}));
-        countBy("verify", e -> e.get("step"), true).forEach((r, n) -> rows.add(new String[]{"L2/L3 verify", r, String.valueOf(n)}));
+        events.stream().filter(e -> "verify".equals(e.event()) && isFail(e))
+                .collect(Collectors.groupingBy(e -> (isLateLayer(e) ? "L3 提交/CI" : "L2 verify") + "\u0000" + e.get("step"), Collectors.counting()))
+                .forEach((k, n) -> rows.add(new String[]{k.split("\u0000")[0], k.split("\u0000")[1], String.valueOf(n)}));
         rows.sort(Comparator.comparingLong((String[] r) -> Long.parseLong(r[2])).reversed());
         return rows.size() > 10 ? rows.subList(0, 10) : rows;
     }

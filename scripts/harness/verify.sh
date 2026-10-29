@@ -20,7 +20,8 @@ else
 fi
 
 if [ -z "$mods" ] && [ -z "$specs" ] && [ -z "$mig_dirs" ]; then
-  [ "$MODE" = "--hook" ] || echo "verify: nothing changed"
+  # 无改动也记一次通过：Agent 回滚了自己的改动同样算"结束时干净"
+  if [ "$MODE" = "--hook" ]; then metric verify mode=--hook result=pass modules= ms=0; else echo "verify: nothing changed"; fi
   exit 0
 fi
 
