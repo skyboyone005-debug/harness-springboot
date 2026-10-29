@@ -12,6 +12,7 @@ import java.util.Arrays;
  *   lint [spec...]        契约规范检查
  *   diff base.yaml head   破坏性变更检测 + 前端变更日志
  *   migration-lint dir [--new a.sql,b.sql]   数据库迁移检查
+ *   report [metrics.jsonl] [--html out.html] harness 质量报告
  * </pre>
  */
 public final class Cli {
@@ -26,8 +27,9 @@ public final class Cli {
             case "lint" -> SpecLint.main(rest);
             case "diff" -> SpecDiff.main(rest);
             case "migration-lint" -> MigrationLint.main(rest);
+            case "report" -> Report.main(rest);
             default -> {
-                System.err.println("usage: contract-cli (lint [spec...] | diff <base.yaml> <head.yaml> | migration-lint <dir> [--new a.sql,b.sql])");
+                System.err.println("usage: contract-cli (lint [spec...] | diff <base.yaml> <head.yaml> | migration-lint <dir> [--new a.sql,b.sql] | report [metrics.jsonl] [--html out.html])");
                 System.exit(2);
             }
         }

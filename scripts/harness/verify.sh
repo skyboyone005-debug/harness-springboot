@@ -29,7 +29,7 @@ T0="$(now_ms)"
 # 失败摘要：先给关键行（Agent 最需要的信号），再给少量尾部上下文，控制回灌 token
 summary() {
   grep -E 'Tests run:.*(Failures: [1-9]|Errors: [1-9])|<<< (FAILURE|ERROR)|violates contract|not declared|contract coverage|expected:|\[ERROR\] .*\.java|BREAKING|speclint:|migration-lint|immutable|destructive statement|problem|^ +- \$' "$LOG" \
-    | grep -vE 'Tests run: .*, Failures: 0, Errors: 0' | head -20
+    | grep -vE 'Tests run: .*, Failures: 0, Errors: 0| OK$' | head -20
   echo "--- tail ---"
   grep -vE '^\[ERROR\] *$|Help 1|[Rr]e-run Maven|full stack trace|For more information|Please refer|-rf :|After correcting|^WARNING|Mockito is currently|^\[INFO\]' "$LOG" | tail -8
 }

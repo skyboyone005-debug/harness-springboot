@@ -27,6 +27,12 @@ lint-spec: ## 契约规范检查
 contract-diff: ## 契约相对 main 的变更（含破坏性检测）
 	@scripts/harness/contract-diff.sh
 
+report: ## 汇总 hooks 记录的度量 -> 终端 markdown + .harness/report.html 看板
+	@scripts/harness/contract-cli.sh report .harness/metrics.jsonl --html .harness/report.html
+
+migration-check: ## 数据库迁移检查（不可变 + 破坏性语句）
+	@scripts/harness/migration-check.sh
+
 sdk: ## 由契约生成前端 TS SDK -> web-sdk/src/gen
 	@scripts/dev/sdk.sh
 
@@ -42,4 +48,4 @@ up: ## docker compose 启动
 new-service: ## 新服务骨架：make new-service NAME=payment
 	@scripts/dev/new-service.sh $(NAME)
 
-.PHONY: help setup hooks verify ci test lint-spec contract-diff sdk dev mock up new-service
+.PHONY: help setup hooks verify ci test lint-spec contract-diff report migration-check sdk dev mock up new-service
