@@ -6,3 +6,4 @@ target/
 node_modules/
 web-sdk/package-lock.json
 .claude/settings.local.json
+.harness/

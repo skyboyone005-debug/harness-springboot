@@ -13,7 +13,8 @@ jobs:
         with: { distribution: temurin, java-version: 17, cache: maven }
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - name: full verify (speclint, contract-diff, mvn verify)
+      - name: full verify (speclint, contract-diff, migration-check, mvn verify)
+        env: { HARNESS_SOURCE: ci }
         run: scripts/harness/verify.sh --all
       - name: breaking-change gate vs base branch
         if: github.event_name == 'pull_request'
