@@ -1,0 +1,21 @@
+{"ts":1793251107769,"event":"guard.block","source":"claude","session":"add-user-phone","rule":"migration-immutable","tool":"Edit"}
+{"ts":1793251108136,"event":"edit.check","source":"claude","session":"add-user-phone","kind":"migration","result":"fail","file":"services/user/src/main/resources/db/migration/V2__add_user_phone.sql","ms":"304"}
+{"ts":1793251108488,"event":"edit.check","source":"claude","session":"add-user-phone","kind":"migration","result":"pass","file":"services/user/src/main/resources/db/migration/V2__add_user_phone.sql","ms":"281"}
+{"ts":1793251121675,"event":"verify","source":"claude","session":"add-user-phone","mode":"--hook","result":"pass","modules":"services/user","ms":"13080"}
+{"ts":1793251126112,"event":"edit.check","source":"claude","session":"rename-email","kind":"compile","result":"pass","file":"services/user/src/main/java/com/harness/user/User.java","ms":"4365"}
+{"ts":1793251139032,"event":"verify","source":"claude","session":"rename-email","mode":"--hook","result":"fail","step":"mvn test (services/user)","modules":"services/user","ms":"12820"}
+{"ts":1793251143293,"event":"edit.check","source":"claude","session":"rename-email","kind":"compile","result":"pass","file":"services/user/src/main/java/com/harness/user/User.java","ms":"4173"}
+{"ts":1793251143383,"event":"verify","source":"claude","session":"rename-email","mode":"--hook","result":"pass","modules":"","ms":"0"}
+{"ts":1793251143827,"event":"edit.check","source":"claude","session":"order-currency","kind":"speclint","result":"pass","file":"services/order/src/main/resources/openapi.yaml","ms":"366"}
+{"ts":1793251144640,"event":"verify","source":"claude","session":"order-currency","mode":"--hook","result":"fail","step":"contract-diff","modules":"services/order","ms":"708"}
+{"ts":1793251145102,"event":"edit.check","source":"claude","session":"order-currency","kind":"speclint","result":"pass","file":"services/order/src/main/resources/openapi.yaml","ms":"387"}
+{"ts":1793251158895,"event":"verify","source":"claude","session":"order-currency","mode":"--hook","result":"pass","modules":"services/order","ms":"13690"}
+{"ts":1793251162750,"event":"edit.check","source":"claude","session":"refactor-controller","kind":"compile","result":"fail","file":"services/user/src/main/java/com/harness/user/UserController.java","ms":"3776"}
+{"ts":1793251166194,"event":"edit.check","source":"claude","session":"refactor-controller","kind":"compile","result":"pass","file":"services/user/src/main/java/com/harness/user/UserController.java","ms":"3372"}
+{"ts":1793251166240,"event":"guard.block","source":"claude","session":"refactor-controller","rule":"no-verify","tool":"Bash"}
+{"ts":1793251166287,"event":"guard.block","source":"claude","session":"refactor-controller","rule":"generated-file","tool":"Edit"}
+{"ts":1793251166368,"event":"verify","source":"claude","session":"refactor-controller","mode":"--hook","result":"pass","modules":"","ms":"0"}
+{"ts":1793251173125,"event":"verify","source":"claude","session":"flaky-fix","mode":"--hook","result":"fail","step":"mvn test (services/user)","modules":"services/user","ms":"6658"}
+{"ts":1793251173178,"event":"verify.escalate","source":"claude","session":"flaky-fix"}
+{"ts":1793251173236,"event":"guard.block","source":"claude","session":"cleanup-shell","rule":"destructive-sql","tool":"Bash"}
+{"ts":1793251173292,"event":"guard.block","source":"claude","session":"cleanup-shell","rule":"force-push","tool":"Bash"}

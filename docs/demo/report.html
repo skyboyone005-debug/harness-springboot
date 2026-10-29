@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Harness 质量看板</title>
+<style>
+:root{color-scheme:light;--surface:#fcfcfb;--card:#ffffff;--border:#e4e3df;--text:#0b0b0b;--text-2:#52514e;--grid:#ecebe7;--series-1:#2a78d6;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--surface:#1a1a19;--card:#222220;--border:#3a3936;--text:#f0efec;--text-2:#c3c2b7;--grid:#2e2d2a;--series-1:#3987e5;--warn:#f59e0b}}
+*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif}
+main{max-width:960px;margin:0 auto;padding:24px 16px 48px}h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:28px 0 10px}
+.sub{color:var(--text-2);font-size:12.5px}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}.kpi .v{font-size:28px;font-weight:650;font-variant-numeric:tabular-nums}
+.kpi .k{color:var(--text-2);font-size:12.5px}.kpi .h{color:var(--text-2);font-size:11.5px;margin-top:4px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.bar-row{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:12px;padding:6px 0}.bar-label{color:var(--text-2);font-size:13px}.bar-label b{color:var(--text)}
+.bar-track{position:relative;display:flex;align-items:center;gap:8px;border-left:1px solid var(--grid)}
+.bar{height:18px;background:var(--series-1);border-radius:0 4px 4px 0;min-width:2px}.bar-value{font-variant-numeric:tabular-nums;font-size:13px}
+.bar-row:hover .bar{filter:brightness(1.12)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--grid);font-size:13px}th{color:var(--text-2);font-weight:500}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.warn{color:var(--warn)}
+code{font-size:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}.bar-row{grid-template-columns:110px 1fr}}
+</style></head><body><main>
+<h1>Harness 质量看板</h1>
+<div class="sub">2026-10-29 13:18 ~ 2026-10-29 13:19 · 21 条事件 · 数据源 <code>docs/demo/metrics.jsonl</code></div>
+<div class="kpis">
+  <div class="kpi"><div class="k">Stop 一次通过率</div><div class="v">40%</div><div class="h">Agent 第一次想结束时就通过</div></div>
+  <div class="kpi"><div class="k">平均修复轮数</div><div class="v">0.6</div><div class="h">首次通过前被 Stop 拦下的次数</div></div>
+  <div class="kpi"><div class="k">早层拦截占比</div><div class="v">70%</div><div class="h">L0+L1 拦下的问题 / 全部 10 次</div></div>
+  <div class="kpi"><div class="k">升级到人工</div><div class="v">1</div><div class="h">Agent 修不好、交给人的次数</div></div>
+  <div class="kpi"><div class="k">Agent 会话</div><div class="v">6</div><div class="h">来自 Claude Code hooks</div></div>
+</div>
+<h2>各层拦截次数：问题被挡在哪一层</h2>
+<div class="card"><div class="bar-row" title="L0 执行前守卫：5 次"><div class="bar-label"><b>L0</b> 执行前守卫</div><div class="bar-track"><div class="bar" style="width:100.0%"></div><span class="bar-value">5</span></div></div>
+<div class="bar-row" title="L1 编辑后即时检查：2 次"><div class="bar-label"><b>L1</b> 编辑后即时检查</div><div class="bar-track"><div class="bar" style="width:40.0%"></div><span class="bar-value">2</span></div></div>
+<div class="bar-row" title="L2 结束前增量检查：3 次"><div class="bar-label"><b>L2</b> 结束前增量检查</div><div class="bar-track"><div class="bar" style="width:60.0%"></div><span class="bar-value">3</span></div></div>
+<div class="bar-row" title="L3 提交 / CI：0 次"><div class="bar-label"><b>L3</b> 提交 / CI</div><div class="bar-track"><div class="bar" style="width:0.0%"></div><span class="bar-value">0</span></div></div>
+</div>
+<div class="grid2">
+  <div><h2>拦截原因 Top 10</h2><div class="card"><table><thead><tr><th>类别</th><th>原因</th><th class="num">次数</th></tr></thead><tbody><tr><td>L2 verify</td><td><code>mvn test (services/user)</code></td><td class="num">2</td></tr>
+<tr><td>L0 守卫</td><td><code>migration-immutable</code></td><td class="num">1</td></tr>
+<tr><td>L0 守卫</td><td><code>generated-file</code></td><td class="num">1</td></tr>
+<tr><td>L0 守卫</td><td><code>no-verify</code></td><td class="num">1</td></tr>
+<tr><td>L0 守卫</td><td><code>force-push</code></td><td class="num">1</td></tr>
+<tr><td>L0 守卫</td><td><code>destructive-sql</code></td><td class="num">1</td></tr>
+<tr><td>L1 编辑后</td><td><code>compile</code></td><td class="num">1</td></tr>
+<tr><td>L1 编辑后</td><td><code>migration</code></td><td class="num">1</td></tr>
+<tr><td>L2 verify</td><td><code>contract-diff</code></td><td class="num">1</td></tr>
+</tbody></table></div></div>
+  <div><h2>检查耗时（中位数）</h2><div class="card"><table><thead><tr><th>检查</th><th class="num">耗时</th></tr></thead><tbody><tr><td>L1 compile</td><td class="num">4.2 s</td></tr>
+<tr><td>L1 migration</td><td class="num">304 ms</td></tr>
+<tr><td>L1 speclint</td><td class="num">387 ms</td></tr>
+<tr><td>L2 stop</td><td class="num">6.7 s</td></tr>
+</tbody></table></div></div>
+</div>
+<h2>Agent 会话明细</h2>
+<div class="card"><table><thead><tr><th>会话</th><th class="num">Stop 检查</th><th>首次即通过</th><th class="num">修复轮数</th><th>最终通过</th></tr></thead><tbody><tr><td><code>add-user-phone</code></td><td class="num">1</td><td>是</td><td class="num">0</td><td>是</td></tr>
+<tr><td><code>cleanup-shell</code></td><td class="num">0</td><td>–</td><td class="num">0</td><td>–</td></tr>
+<tr><td><code>flaky-fix</code></td><td class="num">1</td><td>否</td><td class="num">1</td><td><span class="warn">⚠ 否</span></td></tr>
+<tr><td><code>order-currency</code></td><td class="num">2</td><td>否</td><td class="num">1</td><td>是</td></tr>
+<tr><td><code>refactor-controller</code></td><td class="num">1</td><td>是</td><td class="num">0</td><td>是</td></tr>
+<tr><td><code>rename-email</code></td><td class="num">2</td><td>否</td><td class="num">1</td><td>是</td></tr>
+</tbody></table></div>
+<p class="sub">口径：L0 = PreToolUse 守卫拦截；L1 = 编辑后编译 / speclint / migration-lint 失败；L2 = Stop 或手动 verify 失败；L3 = git pre-commit / CI 失败。由 <code>make report</code> 生成。</p>
+</main></body></html>
