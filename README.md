@@ -3,6 +3,8 @@
 一个面向 **Claude Code / Codex** 的 Spring Boot 微服务 Harness Engineering 样板：
 Spring Boot 3.5（Java 17，Maven 多模块）user / order / gateway 三个服务 + 契约优先 + 精简的 AGENTS.md / skills / hooks / subagent。
 
+**高级版新增**：JdbcClient + Flyway 持久化与**数据库迁移守卫**（已提交迁移不可改、破坏性 SQL 拦截），以及**质量度量看板**（用数据回答"这套 harness 到底有没有用"）。见 [1.8](#18-数据库迁移守卫高级版) / [1.9](#19-质量度量用数据证明-harness-有效高级版)。
+
 > Harness Engineering 的核心观点：**Agent 的产出质量 ≈ 它所处环境的反馈质量**。
 > 与其在提示词里写"请注意 xxx"，不如把规则变成**可执行的检查**，在 Agent 犯错的那一刻就把错误信息喂回去。
 
@@ -40,16 +42,16 @@ flowchart LR
 |---|---|
 | `harness-contract` | 契约测试扩展 `Contract`、`SpecLint`、`SpecDiff`。只依赖 SnakeYAML + Jackson，额外打出 `*-cli.jar`，启动 <0.5s |
 | `common-web` | Spring Boot **自动配置**：统一错误体、`@RestControllerAdvice`、request-id 过滤器、严格 JSON。服务引入依赖即生效，零代码 |
-| `services/user` | 用户服务（record DTO + Bean Validation + 内存存储，`UserStore` 接口隔离持久化） |
-| `services/order` | 订单服务，经 `RestClient` 调 user-service；依赖边界是 `UserClient` 接口，测试用 `@MockitoBean` |
+| `services/user` | 用户服务：record DTO + Bean Validation；`JdbcClient` 存储，唯一约束兜底并发重复注册（409）；Flyway 迁移 |
+| `services/order` | 订单服务：订单头 + 明细两表同一 `@Transactional` 写入（有回滚测试）；经 `RestClient` 调 user-service，依赖边界是 `UserClient` 接口 |
 | `services/gateway` | 前端唯一入口 `/api/{svc}/**`，剥离前缀反向代理 + CORS + request-id 贯穿 |
 
 ### 1.3 反馈分层（快速高质量迭代的关键）
 
 | 层 | 触发 | 做什么 | 耗时（本机实测） | 失败时 |
 |---|---|---|---|---|
-| L0 守卫 | `PreToolUse` | 拦截 `push -f` / `--no-verify` / `reset --hard`、写生成文件 / `target/`、改 harness 自身 | ms | 阻止并说明原因 |
-| L1 即时 | `PostToolUse` | `.java` → `mvn -pl <模块> -am compile`；`openapi.yaml` → speclint + 注入"下一步"提示 | 编译约 3–4s，lint <0.5s | 错误回灌，当轮修复 |
+| L0 守卫 | `PreToolUse` | 拦截 `push -f` / `--no-verify` / `reset --hard` / shell 里的 `DROP TABLE`、写生成文件 / `target/`、**改已提交的迁移**、改 harness 自身 | ms | 阻止并说明原因 |
+| L1 即时 | `PostToolUse` | `.java` → `mvn -pl <模块> -am compile`；`openapi.yaml` → speclint + 注入"下一步"提示；`db/migration/*.sql` → migration-lint | 编译约 3–4s，lint <0.5s | 错误回灌，当轮修复 |
 | L2 增量 | `Stop` | 只对**受影响模块**：speclint → contract-diff → `mvn -pl … -am test` | 单服务约 10s | 阻止结束，回灌**摘要后**的错误 |
 | L3 全量 | git pre-commit / CI | `verify --all` + PR 对 base 的破坏性检测 + SDK 是否已重新生成 | 约 30s | 拒绝合并 |
 
@@ -118,6 +120,40 @@ class UserContractTest {
 
 **跨工具复用**：Claude Code 通过 hooks 调用这些脚本；Codex 和人类通过 `make verify` 与 git pre-commit 调用；CI 调用 `verify --all`。`.agents/skills` 是指向 `.claude/skills` 的软链。
 
+高级版多了一个 `db-change` skill（共 4 个）：数据库变更的流程和接口变更差别很大，放进 `api-change` 会让两个流程都变长。
+
+### 1.8 数据库迁移守卫（高级版）
+
+AI 改表结构最危险：代码改错了回滚就行，**数据删了回不来**，已执行过的迁移被改了 Flyway 直接拒绝启动。所以这部分规则最严，并且全部机械化：
+
+| 规则 | 在哪一层拦 | 为什么 |
+|---|---|---|
+| 已提交的迁移不可修改 / 删除 | L0（编辑前就拦）+ L2/L3（git diff 兜底） | 它可能已在测试 / 生产执行过；改了 checksum 不一致，Flyway 拒绝启动 |
+| 文件名 `V<n>__<snake_case>.sql`，版本不重复 | L1 migration-lint | 命名错了 Flyway 会静默跳过 |
+| 新迁移版本号必须大于已有最大版本 | L1 / L2 | 插队的版本在已上线环境不会执行，环境之间表结构悄悄分叉 |
+| 破坏性语句默认拒绝：DROP TABLE/COLUMN、TRUNCATE、RENAME、MODIFY/CHANGE、无 WHERE 的 DELETE/UPDATE | L1 / L2 | 旧版本应用在滚动发布期间还在读这些列；强制"先加后删"两步走 |
+| 确需破坏：语句前写 `-- harness:allow-destructive <原因>`，原因不能为空 | L1 | 不是不让做，而是让人审查时有据可查 |
+| `ADD COLUMN ... NOT NULL` 必须带 DEFAULT | L1 | 有数据的表上会直接失败 |
+| shell 里直接 `DROP TABLE` / `flyway clean` | L0 | 绕过迁移的变更无法审查、无法复现 |
+
+存储层用 Spring 6 的 `JdbcClient`（不用 JPA）：SQL 显式可见，AI 改出来的 SQL 人一眼能审，也方便和迁移文件对照。
+默认数据源是内存 H2（MySQL 兼容模式），clone 下来零依赖就能跑测试和 `make dev`；`SPRING_PROFILES_ACTIVE=mysql` 或 `make up` 连真实 MySQL 8.4。
+
+### 1.9 质量度量：用数据证明 harness 有效（高级版）
+
+"这套东西真的有用吗？"是面试和落地时最常被问的问题。每个 hook 在拦截或放行时都往 `.harness/metrics.jsonl` 追加一行事件（会话 id 来自 Claude Code 的 hook 输入），`make report` 汇总成终端报告 + HTML 看板：
+
+| 指标 | 口径 | 怎么解读 |
+|---|---|---|
+| Stop 一次通过率 | Agent 会话中第一次想结束时就通过 verify 的比例 | 越高说明前面几层把问题挡得越早，Agent 不用反复返工 |
+| 平均修复轮数 | 首次通过前被 Stop 拦下的次数 | 持续偏高 → 规则 / 文档不清楚，该补 skill 或 AGENTS.md |
+| 早层拦截占比 | L0 + L1 拦下的问题 / 全部拦截 | 越高越便宜：编辑时 3 秒发现，好过提交时 30 秒、上线后几天 |
+| 升级到人工 | Stop 连续拦截后放行给人的次数 | 每一次都值得复盘：是 Agent 能力边界，还是规则本身有问题 |
+| 拦截原因 Top / 检查耗时 | 按规则 / 步骤分组 | 找出最常犯的错，和拖慢反馈的那一步 |
+
+[`docs/demo/report.html`](docs/demo/report.html) 是一份示例看板：数据由**真实 hook 调用**生成（6 个模拟会话：加字段、改名、改契约、重构、修不好、危险命令），不是手写的数字。
+度量文件默认不提交（`.gitignore`）；团队落地时可以在 CI 收集各人的 `metrics.jsonl` 做周报。
+
 ---
 
 ## 2. 如何使用
@@ -140,6 +176,9 @@ claude            # 自动加载 CLAUDE.md(→AGENTS.md)、.claude/settings.json
   # 选用 api-change skill：改 openapi.yaml → speclint 即时检查 → 改 record DTO + Controller
   # → 补契约测试 → Stop hook 跑增量 verify → make sdk → fe-handoff 产出交接文档
 > 用 reviewer 子代理审一下这次改动
+> 给用户加手机号字段
+  # db-change skill：新增 V2__add_user_phone.sql（可空或带默认值）→ migration-lint 即时检查
+  # → 改 JdbcUserStore → 需要暴露给前端时接着走 api-change
 > 新建一个 payment 服务，负责支付单
   # new-service skill → make new-service NAME=payment → 模块已注册到根 pom 且测试通过
 ```
@@ -156,7 +195,9 @@ make dev          # 真实服务：gateway :8080，order :8081，user :8082
 make mock         # 纯 mock（Prism），前端立即可联调
 make sdk          # 生成 web-sdk/src/gen（前端 import "@harness/web-sdk"）
 make contract-diff
-make up           # docker compose
+make migration-check   # 数据库迁移检查
+make report       # 质量报告：终端 markdown + .harness/report.html
+make up           # docker compose（含 MySQL 8.4）
 MVN="mvn -o" make verify   # 离线加速
 ```
 
@@ -191,7 +232,27 @@ contract coverage: operations never exercised by tests: [createUser (POST /v1/us
 # ⑥ 守卫
 BLOCKED by harness guard: --no-verify skips quality gates; fix the failure instead
 BLOCKED by harness guard: scripts/harness/verify.sh is part of the harness; agents may not loosen their own guardrails
+
+# ⑦ 改已提交的迁移（PreToolUse 编辑前就拦）
+BLOCKED by harness guard: .../db/migration/V1__create_users.sql is a committed migration and may already
+have run somewhere; never edit it — add a new V<next>__<desc>.sql in the same folder
+
+# ⑧ 新迁移里删列 + NOT NULL 无默认值（PostToolUse，约 0.3s）
+V2__drop_name.sql:1: destructive statement (drops a column; old app versions still read it): ALTER TABLE USERS DROP COLUMN NAME
+  -> make it backward compatible, or precede it with '-- harness:allow-destructive <reason>'
+V2__drop_name.sql:2: ADD COLUMN ... NOT NULL without DEFAULT fails on tables that already have rows
+
+# ⑨ 事务回滚（JdbcOrderStoreTest）：第 2 条明细写入失败 → 订单头一起回滚，库里 0 行
 ```
+
+质量看板（`docs/demo/report.html`，由上面这些真实拦截生成）：
+
+| 指标 | 值 |
+|---|---|
+| Stop 一次通过率 | 40% |
+| 平均修复轮数 | 0.6 |
+| 早层拦截占比（L0+L1） | 70% |
+| 升级到人工 | 1 |
 
 ---
 
@@ -201,23 +262,26 @@ BLOCKED by harness guard: scripts/harness/verify.sh is part of the harness; agen
 pom.xml                          # 父 POM（spring-boot-starter-parent 3.5.16）
 AGENTS.md  CLAUDE.md
 .claude/settings.json            # 权限白名单 + 3 个 hooks
-.claude/skills/{api-change,new-service,fe-handoff}/SKILL.md
+.claude/skills/{api-change,db-change,new-service,fe-handoff}/SKILL.md
 .claude/agents/reviewer.md
 .agents/skills -> .claude/skills
-scripts/harness/                 # guard / post-edit / verify / contract-diff / contract-cli（harness 核心）
+scripts/harness/                 # guard / post-edit / verify / contract-diff / migration-check / contract-cli（harness 核心）
 scripts/dev/                     # run(dev|mock) / sdk / new-service / services 注册表
-harness-contract/                # Contract（JUnit5 扩展）、SpecLint、SpecDiff、OpenApi、SchemaValidator
+harness-contract/                # Contract（JUnit5 扩展）、SpecLint、SpecDiff、MigrationLint、Report、OpenApi、SchemaValidator
 common-web/                      # ApiException、GlobalExceptionHandler、RequestIdFilter、自动配置
-services/{user,order,gateway}/
+services/{user,order,gateway}/   # user/order 含 src/main/resources/db/migration（Flyway）
 templates/service/               # new-service 模板
 web-sdk/                         # 前端 SDK（src/gen 为生成物）
 docs/handoff/                    # 前端交接文档
+docs/demo/                       # 示例度量数据 + 质量报告（report.md / report.html）
+docker/mysql/init.sql            # docker compose 用：建 user_db / order_db
 .githooks/pre-commit  .github/workflows/ci.yml  Dockerfile  docker-compose.yml
 ```
 
 ## 5. 扩展方向
 
-- 持久化：`UserStore` 已是接口，可换成 Spring Data JPA，再加一条 hook 拦截不可回滚的 Flyway 迁移。
+- 迁移：加 Testcontainers 在 CI 里用真实 MySQL 跑一遍全部迁移；大表 DDL 接入 gh-ost / pt-osc 的检查。
+- 度量：CI 汇总全队的 `metrics.jsonl`，按周看一次通过率趋势，用来决定该补哪条规则或 skill。
 - 网关：生产环境换成 Spring Cloud Gateway（限流、熔断、鉴权），契约与 harness 不变。
 - 质量门：在 L3 加 JaCoCo 覆盖率阈值、ArchUnit 分层规则（例如"服务之间禁止互相依赖"），把更多规则从文档搬到代码里。
 - 可观测：request-id 已写入 MDC，可接 Micrometer Tracing / OpenTelemetry。
