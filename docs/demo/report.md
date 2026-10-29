@@ -1,6 +1,6 @@
 # Harness 质量报告
 
-数据：`docs/demo/metrics.jsonl`，21 条事件，2026-10-29 13:18 ~ 2026-10-29 13:19
+数据：`docs/demo/metrics.jsonl`，21 条事件，2026-10-29 13:22 ~ 2026-10-29 13:23
 
 | 指标 | 值 |
 |---|---|
@@ -37,10 +37,10 @@
 
 | 检查 | ms |
 |---|---|
-| L1 compile | 4173 |
-| L1 migration | 304 |
-| L1 speclint | 387 |
-| L2 stop | 6658 |
+| L1 compile | 3769 |
+| L1 migration | 276 |
+| L1 speclint | 340 |
+| L2 stop | 10887 |
 
 ## Agent 会话
 
